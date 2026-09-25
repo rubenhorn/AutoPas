@@ -365,6 +365,7 @@ std::string MDFlexConfig::to_string() const {
   printOption(pauseSimulationDuringTuning);
   printOption(aosSortingThreshold);
   printOption(soaSortingThreshold);
+  printOption(useSortingThresholdBenchmark);
   // simulation length is either dictated by tuning phases or iterations
   if (tuningPhases.value > 0) {
     printOption(tuningPhases);
@@ -459,6 +460,7 @@ std::string MDFlexConfig::to_string() const {
   printOption(loadBalancingInterval);
   printOption(subdivideDimension);
   printOption(energySensorOption);
+  printOption(threadCounts);
   return os.str();
 }
 

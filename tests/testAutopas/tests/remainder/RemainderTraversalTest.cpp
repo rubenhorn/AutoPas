@@ -70,13 +70,15 @@ void testIteratePairwiseSteps(std::vector<Molecule> &particlesContainerOwned,
       dataLayout,
       n3,
       autopas::InteractionTypeOption::pairwise,
+      autopas::autopas_get_max_threads(),
       autopas::VectorizationPatternOption::p1xVec,
   }});
   auto tunerManager = std::make_shared<autopas::TuningManager>(autoTunerInfo);
   tunerManager->addAutoTuner(
       std::make_unique<autopas::AutoTuner>(tuningStrategies, searchSpace, autoTunerInfo, verletRebuildFrequency, ""),
       autopas::InteractionTypeOption::pairwise);
-  autopas::LogicHandler<Molecule> logicHandler(tunerManager, logicHandlerInfo, verletRebuildFrequency, "");
+  autopas::LogicHandler<Molecule> logicHandler(tunerManager, logicHandlerInfo, verletRebuildFrequency, "",
+                                               autoTunerInfo.aosSortingThreshold, autoTunerInfo.soaSortingThreshold);
 
   // Add particles. Calling add(Halo)Particle on a fresh logicHandler should place the particles directly in the
   // container.
@@ -391,12 +393,14 @@ void testRemainderTraversal(const std::vector<Molecule> &particles, const std::v
   const std::set<autopas::Configuration> searchSpace(
       {{autopas::ContainerOption::linkedCells, cellSizeFactor, autopas::TraversalOption::lc_c08,
         autopas::LoadEstimatorOption::none, dataLayout, autopas::Newton3Option::enabled,
-        autopas::InteractionTypeOption::pairwise, autopas::VectorizationPatternOption::p1xVec}});
+        autopas::InteractionTypeOption::pairwise, autopas::autopas_get_max_threads(),
+        autopas::VectorizationPatternOption::p1xVec}});
   auto tunerManager = std::make_shared<autopas::TuningManager>(autoTunerInfo);
   tunerManager->addAutoTuner(
       std::make_unique<autopas::AutoTuner>(tuningStrategies, searchSpace, autoTunerInfo, verletRebuildFrequency, ""),
       autopas::InteractionTypeOption::pairwise);
-  autopas::LogicHandler<Molecule> logicHandler(tunerManager, logicHandlerInfo, verletRebuildFrequency, "");
+  autopas::LogicHandler<Molecule> logicHandler(tunerManager, logicHandlerInfo, verletRebuildFrequency, "",
+                                               autoTunerInfo.aosSortingThreshold, autoTunerInfo.soaSortingThreshold);
 
   // fill the container with the given particles
   for (const auto &p : particles) {

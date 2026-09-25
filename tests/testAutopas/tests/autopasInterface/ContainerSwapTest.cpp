@@ -82,7 +82,9 @@ TEST_P(ContainerSwapTest, testContainerConversion) {
   tunerManager->addAutoTuner(
       std::make_unique<autopas::AutoTuner>(tuningStrategies, searchSpace, autoTunerInfo, verletRebuildFrequency, ""),
       autopas::InteractionTypeOption::pairwise);
-  autopas::LogicHandler<ParticleFP64> logicHandler(tunerManager, logicHandlerInfo, verletRebuildFrequency, "");
+  autopas::LogicHandler<ParticleFP64> logicHandler(tunerManager, logicHandlerInfo, verletRebuildFrequency, "",
+                                                   autoTunerInfo.aosSortingThreshold,
+                                                   autoTunerInfo.soaSortingThreshold);
 
   // Helper to add particles to the container.
   auto addParticlesToContainer = [&](auto &containerToFill) {
@@ -179,7 +181,6 @@ TEST_P(ContainerSwapTest, testContainerConversion) {
   EXPECT_THAT(after2ListHaloWithinCutoff, UnorderedPointwise(ParticleEq(), afterListHaloWithinCutoff));
   EXPECT_THAT(after2ListHaloOutsideCutoff, UnorderedPointwise(ParticleEq(), afterListHaloOutsideCutoff));
 }
-
 std::vector<autopas::Configuration> containerConfigs = {
     {autopas::ContainerOption::directSum, 1, autopas::TraversalOption::ds_sequential,
      autopas::LoadEstimatorOption::none, autopas::DataLayoutOption::aos, autopas::Newton3Option::disabled,

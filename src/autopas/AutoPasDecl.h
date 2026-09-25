@@ -30,6 +30,7 @@
 #include "autopas/utils/NumberSet.h"
 #include "autopas/utils/StaticContainerSelector.h"
 #include "autopas/utils/WrapMPI.h"
+#include "autopas/utils/WrapOpenMP.h"
 
 namespace autopas {
 
@@ -1063,6 +1064,31 @@ class AutoPas {
   }
 
   /**
+   * Setter for the thread counts
+   * @param allowedThreadCounts
+   */
+  void setAllowedThreadCounts(const NumberSet<int> &allowedThreadCounts) {
+    if (not allowedThreadCounts.isFinite()) {
+      utils::ExceptionHandler::exception("Error: thread count options must be finite!");
+    }
+    if (allowedThreadCounts.getMin() < 1) {
+      utils::ExceptionHandler::exception("Error: minimum thread count must be positive {} < 1!",
+                                         allowedThreadCounts.getMin());
+    }
+    const int maxThreadCount = autopas_get_max_threads();
+    if (allowedThreadCounts.getMax() > maxThreadCount) {
+      AutoPasLog(WARN, "Warning: thread count options exceeding {} will be discarded!", maxThreadCount);
+    }
+    std::set<int> values = allowedThreadCounts.getAll();
+    values.erase(values.upper_bound(maxThreadCount), values.end());
+    if (values.size() == 0) {
+      AutoPasLog(WARN, "Warning: no thread count option remaining! (Defaulting to {} threads)", maxThreadCount);
+      values.emplace(maxThreadCount);
+    }
+    _allowedThreadCounts->resetValues(values);
+  }
+
+  /**
    * Setter for the maximal Difference for the bucket distribution.
    * @param MPITuningMaxDifferenceForBucket
    */
@@ -1142,30 +1168,37 @@ class AutoPas {
    * sorted view of the particles to avoid unnecessary distance checks.
    * @param aosSortingThreshold Sum of the number of particles in two cells from which sorting should be enabled.
    */
-  void setAoSSortingThreshold(size_t aosSortingThreshold) {
-    _logicHandlerInfo.aosSortingThreshold = aosSortingThreshold;
-  }
+  void setAoSSortingThreshold(size_t aosSortingThreshold) { _autoTunerInfo.aosSortingThreshold = aosSortingThreshold; }
 
   /**
    * Get the aos-sorting-threshold for traversals that use the CellFunctor.
    * @return aos-sorting-threshold
    */
-  size_t getAoSSortingThreshold() const { return _logicHandlerInfo.aosSortingThreshold; }
+  size_t getAoSSortingThreshold() const { return _autoTunerInfo.aosSortingThreshold; }
 
   /**
    * Set the SoA sorting-threshold.
    * If the sum of the SoA buffer sizes of two cells exceeds this value, the SoA path uses SoAFunctorPairSorted.
    * @param soaSortingThreshold Sum of the SoA buffer sizes from which SoA sorting should be enabled.
    */
-  void setSoASortingThreshold(size_t soaSortingThreshold) {
-    _logicHandlerInfo.soaSortingThreshold = soaSortingThreshold;
-  }
+  void setSoASortingThreshold(size_t soaSortingThreshold) { _autoTunerInfo.soaSortingThreshold = soaSortingThreshold; }
 
   /**
    * Get the SoA sorting-threshold.
    * @return SoA sorting-threshold
    */
-  size_t getSoASortingThreshold() const { return _logicHandlerInfo.soaSortingThreshold; }
+  size_t getSoASortingThreshold() const { return _autoTunerInfo.soaSortingThreshold; }
+
+  /**
+   * Enable or disable benchmark-based AoS/SoA pair-sorting threshold selection.
+   * When enabled, AutoPas runs a micro-benchmark (once per interaction type) to determine per-direction-type
+   * thresholds. SoA thresholds are only benchmarked for functors that support SoA sorting; otherwise the fixed fallback
+   * remains.
+   * @param useSortingThresholdBenchmark
+   */
+  void setUseSortingThresholdBenchmark(bool useSortingThresholdBenchmark) {
+    _logicHandlerInfo.useSortingThresholdBenchmark = useSortingThresholdBenchmark;
+  }
 
  private:
   autopas::ParticleContainerInterface<Particle_T> &getContainer();
@@ -1245,6 +1278,11 @@ class AutoPas {
    * VLCSlicedBalancedTraversal).
    */
   std::set<LoadEstimatorOption> _allowedLoadEstimators{LoadEstimatorOption::getAllOptions()};
+  /**
+   * Thread counts to be used by OpenMP
+   */
+  std::unique_ptr<NumberSet<int>> _allowedThreadCounts{
+      std::make_unique<NumberSetFinite<int>>(std::set<int>({autopas_get_max_threads()}))};
   /**
    * LogicHandler of autopas.
    */

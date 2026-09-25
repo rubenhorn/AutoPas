@@ -66,16 +66,17 @@ class LCC04Traversal : public C08BasedTraversal<ParticleCell_T, Functor_T>, publ
   }
 
   /**
-   * @copydoc autopas::CellTraversal::setAoSSortingThreshold()
+   * @copydoc autopas::CellTraversal::setAoSSortingThresholds()
    */
-  void setAoSSortingThreshold(size_t aosSortingThreshold) override {
-    _cellHandler.setAoSSortingThreshold(aosSortingThreshold);
+  void setAoSSortingThresholds(const SortingThresholdInfoInterface &aosSortingThreshold) override {
+    _cellHandler.setAoSSortingThresholds(aosSortingThreshold);
   }
+
   /**
-   * @copydoc autopas::CellTraversal::setSoASortingThreshold()
+   * @copydoc autopas::CellTraversal::setSoASortingThresholds()
    */
-  void setSoASortingThreshold(size_t soaSortingThreshold) override {
-    _cellHandler.setSoASortingThreshold(soaSortingThreshold);
+  void setSoASortingThresholds(const SortingThresholdInfoInterface &soaSortingThreshold) override {
+    _cellHandler.setSoASortingThresholds(soaSortingThreshold);
   }
 
  private:
@@ -180,7 +181,7 @@ void LCC04Traversal<ParticleCell_T, Functor_T>::processBasePack32(std::vector<Pa
 template <class ParticleCell_T, class Functor_T>
 void LCC04Traversal<ParticleCell_T, Functor_T>::traverseParticles() {
   auto &cells = *(this->_cells);
-  AUTOPAS_OPENMP(parallel) {
+  AUTOPAS_OPENMP(parallel num_threads(autopas_get_tuned_num_threads())) {
     for (int color = 0; color < 4; ++color) {
       traverseSingleColor(cells, color);
 

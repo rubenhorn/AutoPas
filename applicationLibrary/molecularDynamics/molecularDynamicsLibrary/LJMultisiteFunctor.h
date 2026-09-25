@@ -477,7 +477,8 @@ class LJMultisiteFunctor
         SoAFloatPrecision torqueSumY = 0.;
         SoAFloatPrecision torqueSumZ = 0.;
 
-#pragma omp simd reduction (+ : forceSumX, forceSumY, forceSumZ, torqueSumX, torqueSumY, torqueSumZ, potentialEnergySum, virialSumX, virialSumY, virialSumZ)
+#pragma omp simd reduction(+ : forceSumX, forceSumY, forceSumZ, torqueSumX, torqueSumY, torqueSumZ, \
+                               potentialEnergySum, virialSumX, virialSumY, virialSumZ)
         for (size_t siteB = 0; siteB < noSitesB; ++siteB) {
           const size_t globalSiteBIndex = siteB + siteIndexMolB;
 
@@ -608,8 +609,7 @@ class LJMultisiteFunctor
    */
   // clang-format on
   void SoAFunctorVerlet(autopas::SoAView<SoAArraysType> soa, const size_t indexFirst,
-                        const std::vector<size_t, autopas::AlignedAllocator<size_t>> &neighborList,
-                        bool newton3) final {
+                        std::span<const size_t> neighborList, bool newton3) final {
     if (soa.size() == 0 or neighborList.empty()) return;
     if (newton3) {
       SoAFunctorVerletImpl<true>(soa, indexFirst, neighborList);
@@ -1018,7 +1018,8 @@ class LJMultisiteFunctor
         const auto exactSitePositionAy = rotatedSitePositionAy + yAptr[molA];
         const auto exactSitePositionAz = rotatedSitePositionAz + zAptr[molA];
 
-#pragma omp simd reduction (+ : forceSumX, forceSumY, forceSumZ, torqueSumX, torqueSumY, torqueSumZ, potentialEnergySum, virialSumX, virialSumY, virialSumZ)
+#pragma omp simd reduction(+ : forceSumX, forceSumY, forceSumZ, torqueSumX, torqueSumY, torqueSumZ, \
+                               potentialEnergySum, virialSumX, virialSumY, virialSumZ)
         for (size_t siteB = 0; siteB < siteCountB; ++siteB) {
           const SoAFloatPrecision sigmaSquared = useMixing ? sigmaSquareds[siteB] : const_sigmaSquared;
           const SoAFloatPrecision epsilon24 = useMixing ? epsilon24s[siteB] : const_epsilon24;
@@ -1141,7 +1142,7 @@ class LJMultisiteFunctor
 
   template <bool newton3>
   void SoAFunctorVerletImpl(autopas::SoAView<SoAArraysType> soa, const size_t indexPrime,
-                            const std::vector<size_t, autopas::AlignedAllocator<size_t>> &neighborList) {
+                            std::span<const size_t> neighborList) {
     const auto *const __restrict ownedStatePtr = soa.template begin<Particle_T::AttributeNames::ownershipState>();
 
     // Skip if primary particle is dummy
@@ -1187,7 +1188,6 @@ class LJMultisiteFunctor
     const auto const_shift6 = _shift6;
 
     const size_t neighborListSize = neighborList.size();
-    const size_t *const __restrict neighborListPtr = neighborList.data();
 
     // Count sites
     const size_t siteCountMolPrime =

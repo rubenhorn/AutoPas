@@ -26,6 +26,7 @@
 #include "autopas/options/VectorizationPatternOption.h"
 #include "autopas/utils/Math.h"
 #include "autopas/utils/NumberSet.h"
+#include "autopas/utils/WrapOpenMP.h"
 #include "src/TypeDefinitions.h"
 #include "src/configuration/objects/CubeClosestPacked.h"
 #include "src/configuration/objects/CubeGauss.h"
@@ -301,6 +302,12 @@ class MDFlexConfig {
   MDFlexOption<std::shared_ptr<autopas::NumberSet<double>>, __LINE__> cellSizeFactors{
       std::make_shared<autopas::NumberSetFinite<double>>(std::set<double>{1.}), "cell-size", true,
       "Factor for the interaction length to determine the cell size."};
+  /**
+   * threadCounts
+   */
+  MDFlexOption<std::shared_ptr<autopas::NumberSetFinite<int>>, __LINE__> threadCounts{
+      std::make_shared<autopas::NumberSetFinite<int>>(std::set<int>{autopas::autopas_get_max_threads()}),
+      "thread-count", true, "OpenMP thread counts."};
   /**
    * logFileName
    */
@@ -591,10 +598,21 @@ class MDFlexConfig {
    * Default comes from the LJFunctorHWY Benchmarks.
    */
   MDFlexOption<size_t, __LINE__> soaSortingThreshold{
-      50, "soa-sorting-threshold", true,
+      100, "soa-sorting-threshold", true,
       "Threshold for the SoA functor pair path to start sorting. If the sum of the SoA buffer sizes of two cells is "
       "greater or equal to that value, particles are sorted by their projection onto the cell-pair direction vector "
       "before computing interactions."};
+  /**
+   * useSortingThresholdBenchmark
+   * If true, AutoPas runs a micro-benchmark to determine the optimal AoS/SoA pair-sorting threshold per cell layout
+   * (Face, Edge, Corner) instead of the fixed aos/soa-sorting-threshold. SoA Thresholds are only determined for
+   * functors that support SoA sorting.
+   */
+  MDFlexOption<bool, __LINE__> useSortingThresholdBenchmark{
+      false, "use-sorting-threshold-benchmark", true,
+      "If true, AutoPas runs a micro-benchmark to determine the optimal AoS/SoA pair-sorting threshold per cell layout "
+      "(Face, Edge, Corner) instead of the fixed aos/soa-sorting-threshold. SoA Thresholds are only determined for "
+      "functors that support SoA sorting."};
 
   // Options for additional Object Generation on command line
   /**

@@ -58,6 +58,7 @@ MDFlexParser::exitCodes MDFlexParser::CLIParser::parseInput(int argc, char **arg
       config.deltaT,
       config.aosSortingThreshold,
       config.soaSortingThreshold,
+      config.useSortingThresholdBenchmark,
       config.distributionMean,
       config.distributionStdDev,
       config.dontCreateEndConfig,
@@ -66,6 +67,7 @@ MDFlexParser::exitCodes MDFlexParser::CLIParser::parseInput(int argc, char **arg
       config.extrapolationMethodOption,
       config.energySensorOption,
       config.functorOption,
+      config.threadCounts,
       config.vecPatternOptions,
       config.functorOption3B,
       config.generatorOption,
@@ -242,6 +244,15 @@ MDFlexParser::exitCodes MDFlexParser::CLIParser::parseInput(int argc, char **arg
           config.soaSortingThreshold.value = stoul(strArg);
         } catch (const exception &) {
           cerr << "Error parsing value for soa-sorting-threshold: " << optarg << endl;
+          displayHelp = true;
+        }
+        break;
+      }
+      case decltype(config.useSortingThresholdBenchmark)::getoptChar: {
+        try {
+          config.useSortingThresholdBenchmark.value = autopas::utils::StringUtils::parseBoolOption(strArg);
+        } catch (const exception &) {
+          cerr << "Error parsing 'use-sorting-threshold-benchmark': " << optarg << endl;
           displayHelp = true;
         }
         break;
@@ -612,6 +623,27 @@ MDFlexParser::exitCodes MDFlexParser::CLIParser::parseInput(int argc, char **arg
           displayHelp = true;
         }
         config.energySensorOption.value = *parsedOptions.begin();
+        break;
+      }
+      case decltype(config.threadCounts)::getoptChar: {
+        const auto needles = autopas::utils::StringUtils::tokenize(strArg, autopas::utils::StringUtils::delimiters);
+        std::set<int> threadCounts;
+        for (const auto str : needles) {
+          try {
+            int threadCount = std::stoi(str);
+            if (threadCount == 0) threadCount = autopas::autopas_get_max_threads();
+            threadCounts.insert(threadCount);
+          } catch (const exception &) {
+            cerr << "Error parsing thread count options: " << strArg << endl;
+            displayHelp = true;
+            threadCounts.clear();
+            break;
+          }
+        }
+        if (not threadCounts.empty()) {
+          (*config.threadCounts.value) = {threadCounts};
+        }
+        break;
       }
       case decltype(config.ruleFilename)::getoptChar: {
         config.ruleFilename.value = optarg;

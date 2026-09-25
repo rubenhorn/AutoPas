@@ -7,8 +7,9 @@
 #include "GeneratorsTest.h"
 
 #include "autopas/utils/WrapOpenMP.h"
-#include "generators/src/GridGenerator.h"
-#include "generators/src/UniformGenerator.h"
+#include "autopas/utils/generators/GridGenerator.h"
+#include "autopas/utils/generators/UniformGenerator.h"
+#include "src/configuration/OpenMP.h"
 #include "src/configuration/YamlParser.h"
 #include "testingHelpers/commonTypedefs.h"
 
@@ -21,8 +22,8 @@ TEST_F(GeneratorsTest, GridFillwithBoxMin) {
   ParticleType dummy;
 
   autoPas.init();
-  autopasTools::generators::GridGenerator::fillWithParticles(autoPas, {5, 5, 5}, dummy, {1, 1, 1}, boxmin);
-  AUTOPAS_OPENMP(parallel)
+  autopas::generators::GridGenerator::fillWithParticles(autoPas, {5, 5, 5}, dummy, {1, 1, 1}, boxmin);
+  AUTOPAS_OPENMP(parallel MD_FLEXIBLE_NUM_THREADS)
   for (auto iter = autoPas.begin(); iter.isValid(); ++iter) {
     EXPECT_TRUE(autopas::utils::inBox(iter->getR(), boxmin, boxmax));
   }
